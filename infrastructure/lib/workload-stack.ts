@@ -76,7 +76,9 @@ export class WorkloadStack extends cdk.Stack {
     const agentConfig = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'web', 'cloudwatch-agent.json'), 'utf8'));
     for (const f of agentConfig.logs.logs_collected.files.collect_list) delete f.retention_in_days;
     const userDataScript = fs.readFileSync(path.join(REPO_ROOT, 'web', 'userdata.sh'), 'utf8')
-      .replace('__AGENT_CONFIG__', JSON.stringify(agentConfig, null, 2));
+      // Replace only the placeholder on its own line (the header comment also mentions it)
+      .replace(/^__AGENT_CONFIG__$/m, JSON.stringify(agentConfig, null, 2));
+    if (userDataScript.includes('\n__AGENT_CONFIG__\n')) throw new Error('Agent config placeholder was not replaced');
 
     const webRole = new iam.Role(this, 'WebRole', {
       assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
