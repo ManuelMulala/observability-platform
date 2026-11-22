@@ -136,7 +136,12 @@ export class WorkloadStack extends cdk.Stack {
       parameterGroup: new rds.ParameterGroup(this, 'DbParams', {
         engine,
         description: 'Slow query logging for observability',
-        parameters: { slow_query_log: '1', long_query_time: '1', log_output: 'FILE' },
+        parameters: {
+          slow_query_log: '1', long_query_time: '1', log_output: 'FILE',
+          // Database Insights cannot manage the Performance Schema on t4g.medium, so turn it on explicitly
+          // (static parameter: needs a DB reboot after the first deploy)
+          performance_schema: '1',
+        },
       }),
       cloudwatchLogsExports: ['error', 'slowquery'],
       monitoringInterval: cdk.Duration.seconds(60), // Enhanced Monitoring (OS metrics)

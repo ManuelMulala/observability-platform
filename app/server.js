@@ -77,7 +77,7 @@ app.use((req, res, next) => {
 
 app.get('/api', (req, res) => res.json({
   service: 'obs-app', task: TASK,
-  endpoints: ['GET /api/products', 'GET /api/slow', 'GET /api/error', 'GET /api/cpu?seconds=N', 'GET /api/health'],
+  endpoints: ['GET /api/products', 'GET /api/slow', 'GET /api/heavy', 'GET /api/error', 'GET /api/cpu?seconds=N', 'GET /api/health'],
 }));
 
 app.get('/api/products', async (req, res) => {
@@ -97,6 +97,19 @@ app.get('/api/slow', async (req, res) => {
     res.json({ slowQuerySeconds: seconds });
   } catch (e) {
     log('ERROR', 'slow query failed', { error: e.message });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// CPU-heavy query: real database work, visible as DB load / Top SQL in Database Insights
+app.get('/api/heavy', async (req, res) => {
+  const rounds = Math.min(Math.max(Number(req.query.rounds) || 3000000, 100000), 20000000);
+  const started = Date.now();
+  try {
+    await query("SELECT BENCHMARK(?, SHA2('obs-platform', 256)) AS done", [rounds]);
+    res.json({ benchmarkRounds: rounds, dbMs: Date.now() - started });
+  } catch (e) {
+    log('ERROR', 'heavy query failed', { error: e.message });
     res.status(500).json({ error: e.message });
   }
 });
